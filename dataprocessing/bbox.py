@@ -1,16 +1,16 @@
 import sys
 
 sys.path.append('.')
-import os 
 import glob
-import numpy as np
-from timeit import default_timer as timer
-import igl
+import math
+import os
 import traceback
-import math
-import torch
+from timeit import default_timer as timer
+
+import igl
+import numpy as np
 import pytorch_kinematics as pk
-import math
+import torch
 
 path = 'datasets/arm/UR5/meshes/collision/'
 input_file_list = ['forearm','shoulder','upper_arm','wrist_1','wrist_2','wrist_3']

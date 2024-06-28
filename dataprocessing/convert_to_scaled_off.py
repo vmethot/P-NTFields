@@ -1,13 +1,15 @@
-import os
 import glob
+import logging
 import multiprocessing as mp
-from multiprocessing import Pool
+import os
 import random
 import sys
 import traceback
-import logging
+from multiprocessing import Pool
+
 import igl
 import numpy as np
+
 logger = logging.getLogger()
 logger.setLevel(logging.ERROR)
 
@@ -52,10 +54,9 @@ def to_off(path):
         #print(centers)
         #print(bb_max-bb_min)
         if data_type == 'c3d':
-            v/=40
+            v /= 40
         elif data_type == 'arm':
-            v =v
-            
+            v = v
         else:
             centers = (bb_max+bb_min)/2.0
             v = v-centers

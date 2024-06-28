@@ -100,7 +100,7 @@ def arm_obstacle_obb(th_batch, chain, out_path_, margin):
     for batch_id in range(math.floor(th_batch.shape[0]/batch_size)+1):
         if batch_id*batch_size==th_batch.shape[0]:
             break
-        #print(batch_id)
+        print(f"{batch_id=}")
         local_th_batch = th_batch[batch_id*batch_size:min((batch_id+1)*batch_size,th_batch.shape[0]),:]
         tg_batch = chain.forward_kinematics(
                     local_th_batch
@@ -113,14 +113,15 @@ def arm_obstacle_obb(th_batch, chain, out_path_, margin):
         where_coll = torch.zeros(local_th_batch.shape[0], dtype=torch.bool).cuda()
 
         for tg in tg_batch:
-            if iter>2:
+            if iter>2 and iter < len(rob_corner_list):
                 m = tg_batch[tg].get_matrix()
+                print(f"Processing robot corner {iter-2} out of {len(rob_corner_list)}")
                 rob_points= m@rob_corner_list[iter-3]
-                #print(iter)
+                print(f"{iter=}")
                 axis = separate_axis(m)
                 rob_axis_point = axis@rob_points[:,0:3,:]
-                #print(rob_axis_point.shape)
-                #print(obs_points.shape)
+                print(f"{rob_axis_point.shape=}")
+                print(f"{obs_points.shape=}")
                 obs_axis_point = axis@obs_points[0:3,:]
 
                 rob_axis_point_min,_ = torch.min(rob_axis_point,dim=2)
@@ -133,16 +134,16 @@ def arm_obstacle_obb(th_batch, chain, out_path_, margin):
                 where1 = obs_axis_point_max<rob_axis_point_min
 
                 where = torch.cat((where0,where1),dim=1)
-                #print(where.shape)
+                print(f"{where.shape=}")
                 nonsep = torch.all((where == False),dim=1)
-                #print(nonsep.shape)
+                print(f"{nonsep.shape=}")
                 combine = torch.cat((nonsep.unsqueeze(1),where_coll.unsqueeze(1)),dim=1)
                 where_coll = torch.any(combine == True,dim=1)
 
                 del m
             iter = iter+1
         where_list.append(nonsep)
-        #print(where_coll.shape)
+        print(f"{where_coll.shape=}")
     return torch.cat(where_list,0)
 
 def arm_obstacle_distance(th_batch, chain, out_path_, triangles_obs):
@@ -165,6 +166,7 @@ def arm_obstacle_distance(th_batch, chain, out_path_, triangles_obs):
         for tg in tg_batch:
             if iter>1:
                 #print(iter)
+                print(f"{tg=}")
                 v, f = igl.read_triangle_mesh(out_path_+'/meshes/collision/'+tg+'.obj')
                 nv = np.ones((v.shape[0],4))
                 #pointsize = pointsize+v.shape[0]
@@ -259,9 +261,9 @@ def arm_append_list(X_list, Y_list, chain, out_path_,
         y1 = obs_distance1
         
         print(x0.shape)
-        #print(x1.shape)
-        #print(y0.shape)
-        #print(y1.shape)
+        print(x1.shape)
+        print(y0.shape)
+        print(y1.shape)
 
         x = torch.cat((x0,x1),1)
         y = torch.cat((y0.unsqueeze(1),y1.unsqueeze(1)),1)

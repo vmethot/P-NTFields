@@ -1,33 +1,32 @@
 import sys
 
-sys.path.append('.')
-import torch
-import pytorch_kinematics as pk
-import numpy as np
-
 import matplotlib
 import matplotlib.pylab as plt
-import sys
+import numpy as np
+import pytorch_kinematics as pk
+import torch
 
 sys.path.append('.')
+from timeit import default_timer as timer
+
+import igl
 import open3d as o3d
+
 #model_res_sigmoid
 #from models import model_res_sigmoid_nt as md 
-from models import model_res_sigmoid as md 
+from models import model_res_sigmoid as md
 
-from timeit import default_timer as timer
-import igl
 
 def Arm_FK(sampled_points, out_path_ ,path_name_,end_effect_):
-    shape=sampled_points.shape
+    
+    shape = sampled_points.shape
     pointsize = 0
     
     d = "cuda" if torch.cuda.is_available() else "cpu"
-    dtype = torch.float64
-
-    chain = pk.build_serial_chain_from_urdf(
-        open(out_path_+'/'+path_name_+".urdf").read(), end_effect_)
-    chain = chain.to(dtype=dtype, device=d)
+    
+    with open(out_path_+'/'+path_name_+".urdf") as urdf_file_path:
+        chain = pk.build_serial_chain_from_urdf(urdf_file_path.read(), end_effect_)
+        chain = chain.to(dtype=torch.float, device=d)
 
     scale = np.pi/0.5
     
@@ -55,7 +54,7 @@ def Arm_FK(sampled_points, out_path_ ,path_name_,end_effect_):
 
             nv[:,:3] = v
             m = tg_batch[tg].get_matrix()
-            t=torch.from_numpy(nv).cuda()
+            t=torch.from_numpy(nv).float().cuda()
             p=torch.matmul(m[:],t.T)
             #p=p.cpu().numpy()
             p=torch.permute(p,(0,2,1))
@@ -93,18 +92,15 @@ model.load('./Experiments/UR5/Model_Epoch_10000_ValLoss_3.526511e-03.pt')
 
 for ii in range(10):
     
-    XP=torch.tensor([[0.00,0.0,0.0,-0.00,0.00,-0.00,
-                        -1.3, 0.4, 1.1, 0.5,-0.5,0.0]]).cuda()
-    XP=torch.tensor([[-2.2, 0.4, 1.1, 0.5,-0.5,0.9,
-                        -1.3, 0.4, 1.1, 0.5,-0.5,0.0]]).cuda()
+    XP = torch.tensor([[0.00, 0.0, 0.0,-0.0, 0.0,-0.0, -1.3, 0.4, 1.1, 0.5,-0.5,0.0]]).cuda()
+    XP = torch.tensor([[-2.2, 0.4, 1.1, 0.5,-0.5, 0.9, -1.3, 0.4, 1.1, 0.5,-0.5,0.0]]).cuda()
     
     #XP=torch.tensor([[-1.3, 0.4, 1.1, 0.2,-1.5,0.9,
     #                -2.5, 0.8, 1.4, 1.2,0.5,0.1]]).cuda()
     
-    BASE=torch.tensor([[0, -0.5*np.pi, 0.0, -0.5*np.pi,0.0,0.0,
-                        0, -0.5*np.pi, 0.0, -0.5*np.pi,0.0,0.0]]).cuda()
+    BASE = torch.tensor([[0, -0.5*np.pi, 0.0, -0.5*np.pi,0.0,0.0, 0, -0.5*np.pi, 0.0, -0.5*np.pi,0.0,0.0]]).cuda()
     
-    XP = XP+BASE
+    XP = XP + BASE
 
     scale = np.pi/0.5
     XP=XP/scale
@@ -113,20 +109,18 @@ for ii in range(10):
 
     #model.plot(10,10,1.2)
 
-    point0= []#torch.tensor(()).cuda()
-    point1= []#torch.tensor(()).cuda()
+    point0 = [] #torch.tensor(()).cuda()
+    point1 = [] #torch.tensor(()).cuda()
     #p=XP.to('cpu').data.numpy()
     #print(XP[:,0:3])
     point0.append(XP[:,:6])
     point1.append(XP[:,6:])
     start = timer()
     time1 = 0
-    iter=0
+    iter = 0
     while dis>0.03:
         #start1 = timer()
         #tau, Xp = model.network(XP)
-        
-        
         gradient = model.Gradient(XP.clone())
         
         XP = XP + 0.015 * gradient
@@ -143,7 +137,7 @@ for ii in range(10):
     end1 = timer()
     #print(iter)
 
-    print("plan",end1 - start)
+    print(f"planned {iter} iterations in {round(end1 - start, 4)} seconds")
     #print("time1",time1)
     point1.reverse()
     point=point0+point1
@@ -160,13 +154,12 @@ scale = np.pi/0.5
 wholemesh = Arm_FK(xyz[0::1,:],'datasets/arm/UR5','UR5','wrist_3_link')
 
 def length(path):
-        size=path.shape[0]
-        l=0
-        for i in range(size-1):
-            l+=np.linalg.norm(path[i+1,:]-path[i,:])
-        return l
+    size=path.shape[0]
+    l=0
+    for i in range(size-1):
+        l+=np.linalg.norm(path[i+1,:]-path[i,:])
+    return l
 print(length(xyz))
-
 
 file_path = 'datasets/arm/'
 mesh_name = 'untitled_scaled.off'
@@ -175,14 +168,15 @@ path = file_path + 'UR5'+'/'
 
 #dirname = os.path.dirname(f)
 obstacle = o3d.io.read_triangle_mesh(path + mesh_name)
+
 vertices=np.asarray(obstacle.vertices)
 faces=np.asarray(obstacle.triangles)
+
 obstacle.vertices = o3d.utility.Vector3dVector(vertices)
-
-
 obstacle.compute_vertex_normals()
-mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(
-    size=0.1, origin=[0, 0, 0])
+
+mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1, origin=[0, 0, 0])
 
 o3d.visualization.draw_geometries([obstacle,wholemesh,mesh_frame])
+
 
