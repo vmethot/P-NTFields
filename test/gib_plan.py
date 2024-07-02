@@ -1,20 +1,16 @@
 import sys
 
 sys.path.append('.')
-from models import model_res_sigmoid_multi as md
-import torch
-import os 
+from timeit import default_timer as timer
+
+import igl
 import numpy as np
-import matplotlib.pylab as plt
+import open3d as o3d
 import torch
 from torch import Tensor
-from torch.autograd import Variable, grad
+from torch.autograd import Variable
 
-from timeit import default_timer as timer
-import math
-import igl
-import open3d as o3d
-
+from models import model_res_sigmoid_multi as md
 
 modelPath = './Experiments/Gib'
 
@@ -24,11 +20,11 @@ womodel    = md.Model(modelPath, dataPath, 3, 2, device='cuda')
 
 womodel.load('./Experiments/Gib_multi/Model_Epoch_10000_ValLoss_1.221157e-01.pt')#
 womodel.network.eval()
-    
+
 max_x = 0
 max_y = 0
 max_z = 0
-#for gib_id in range(2):
+# for gib_id in range(2):
 gib_id = 0
 v, f = igl.read_triangle_mesh("datasets/gibson/"+str(gib_id)+"/mesh_z_up_scaled.off")        
 print(gib_id)
@@ -90,11 +86,9 @@ pcd = o3d.geometry.PointCloud()
 pcd.points = o3d.utility.Vector3dVector(xyz)
 
 mesh = o3d.io.read_triangle_mesh("datasets/gibson/"+str(gib_id)+"/mesh_z_up_scaled.off")
-        
+
 mesh.scale(20, center=(0,0,0))
 
 mesh.compute_vertex_normals()
 
 o3d.visualization.draw_geometries([mesh,pcd])
-
-

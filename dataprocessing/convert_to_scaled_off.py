@@ -1,14 +1,9 @@
-import glob
 import logging
-import multiprocessing as mp
 import os
-import random
 import sys
 import traceback
-from multiprocessing import Pool
 
 import igl
-import numpy as np
 
 logger = logging.getLogger()
 logger.setLevel(logging.ERROR)
@@ -69,4 +64,3 @@ def to_off(path):
         print('Finished: {}'.format(path))
     except:
         print('Error with {}: {}'.format(path, traceback.format_exc()))
-

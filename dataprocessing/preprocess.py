@@ -3,7 +3,6 @@ import sys
 sys.path.append('.')
 
 import multiprocessing as mp
-import os
 from glob import glob
 from multiprocessing import Pool
 
