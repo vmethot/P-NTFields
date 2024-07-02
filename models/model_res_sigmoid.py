@@ -613,6 +613,7 @@ class Model():
         return grad_x
 
     def Loss(self, points, Yobs, beta, gamma):
+        print("Calculating Loss")
         tau, dtau, ltau, Xp = self.network.out_laplace(points)
         D = Xp[:, self.dimension :] - Xp[:, : self.dimension]
         T0 = torch.einsum("ij,ij->i", D, D)

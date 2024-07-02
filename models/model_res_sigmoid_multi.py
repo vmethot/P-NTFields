@@ -629,7 +629,7 @@ class Model():
         self.Params['Training']['Resampling Bounds'] = [0.1, 0.9]
         self.Params['Training']['Print Every * Epoch'] = 1
         self.Params['Training']['Save Every * Epoch'] = 100
-        self.Params['Training']['Learning Rate'] = 1e-3#5e-5
+        self.Params["Training"]["Learning Rate"] = 1e-3
         self.Params['Training']['Random Distance Sampling'] = True
         self.Params['Training']['Use Scheduler (bool)'] = False
 
@@ -644,6 +644,7 @@ class Model():
         return grad_x
 
     def Loss(self, points, Yobs, B, beta, gamma):
+        print("Calculating Loss")
         tau, dtau, ltau, Xp = self.network.out_laplace(points, B)
         D = Xp[:,:,self.dim:]-Xp[:,:,:self.dim]
         T0 = torch.einsum("bij,bij->bi", D, D)
@@ -707,7 +708,7 @@ class Model():
             total_train_loss = 0
             total_diff = 0
             alpha = min(max(0.5, 0.5 + 0.5 * step), 1.07)
-            step+=1.0/4000/((int)(epoch/4000)+1.)
+            step += 1.0 / 4000 / ((int)(epoch / 4000) + 1.0)
             gamma = 0.001
             prev_state_queue.append(current_state)
             prev_optimizer_queue.append(current_optimizer)
@@ -764,7 +765,9 @@ class Model():
                 total_diff /= len(dataloader) * 5.0
                 current_diff = total_diff
                 diff_ratio = current_diff / prev_diff
-                if diff_ratio < 1.2 and diff_ratio > 0:  # 1.5
+                if diff_ratio < 1.2 and diff_ratio > 0:
+                    # This is eta in the P-NTFields paper. The Loss should not increase too much to be taken into account.
+                    # If the loss has increased by more than 20%, the gradient is discarded and a new dropout is randomized.
                     break
                 else:
                     iter += 1
@@ -799,9 +802,7 @@ class Model():
                     self.save(epoch=epoch, val_loss=total_diff)
 
     def save(self, epoch='', val_loss=''):
-        '''
-        Saving a instance of the model
-        '''
+        """Saving an instance of the model"""
         torch.save({'epoch': epoch,
                     'model_state_dict': self.network.state_dict(),
                     'optimizer_state_dict': self.optimizer.state_dict(),
@@ -810,12 +811,9 @@ class Model():
                     'val_loss': self.total_val_loss}, '{}/Model_Epoch_{}_ValLoss_{:.6e}.pt'.format(self.Params['ModelPath'], str(epoch).zfill(5), val_loss))
 
     def load(self, filepath):
-        # B = torch.load(self.Params['ModelPath']+'/B.pt')
-
         checkpoint = torch.load(
-            filepath, map_location=torch.device(self.Params['Device']))
-        # self.B = checkpoint['B_state_dict']
-
+            filepath, map_location=torch.device(self.Params["Device"])
+        )
         self.network = NN(self.Params['Device'],self.dim)
         self.network.load_state_dict(checkpoint['model_state_dict'], strict=True)
         self.network.to(torch.device(self.Params['Device']))
